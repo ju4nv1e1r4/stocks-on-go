@@ -10,22 +10,38 @@ import (
 	"github.com/urfave/cli"
 )
 
-type FinancialData struct {
-        CurrentPrice struct {
-                Raw  float64 `json:"raw"`
-                Fmt string  `json:"fmt"`
-        } `json:"currentPrice"`
-        RecommendationKey string `json:"recommendationKey"`
+// Struct para representar o JSON retornado pela API
+type APIResponsePrice struct {
+	Meta       MetaData       `json:"meta"`
+	PricesBody PricesBodyData `json:"body"`
 }
 
-type PriceResponse struct {
-        FinancialData FinancialData `json:"financialData"`
+type APIResponseNews struct {
+        NewsBody []NewsBodyData   `json:"body"`
 }
 
-type NewsResponse struct {
-        Link    string `json:"link"`
-        PubDate string `json:"pubDate"`
-        Title   string `json:"title"`
+type MetaData struct {
+	Version        string `json:"version"`
+	Status         int    `json:"status"`
+	Symbol         string `json:"symbol"`
+	ProcessedTime  string `json:"processedTime"`
+}
+
+type PricesBodyData struct {
+	CurrentPrice struct {
+		Raw       float64 `json:"raw"`
+		Fmt       string `json:"fmt"`
+	} `json:"currentPrice"`
+	RecommendationKey string `json:"recommendationKey"`
+}
+
+type NewsBodyData struct {
+        Time   string `json:"time"`
+        Ago    string `json:"ago"`
+        Title  string `json:"title"`
+        URL    string `json:"url"`
+        Text   string `json:"text"`
+        Source string `json:"source"`
 }
 
 func Start() *cli.App {
@@ -58,47 +74,54 @@ func Start() *cli.App {
         return app
 }
 
-func Price(c *cli.Context) (PriceResponse, error) {
-        viper.SetConfigFile(".env")
-        err := viper.ReadInConfig()
-        if err != nil {
-                return PriceResponse{}, fmt.Errorf("erro ao ler arquivo de configuração: %w", err)
-        }
+func Price(c *cli.Context) {
+	viper.SetConfigFile(".env")
+	err := viper.ReadInConfig()
+	if err != nil {
+		return
+	}
 
-        apiKey := viper.GetString("API_KEY")
+	apiKey := viper.GetString("API_KEY")
+	ticker := c.String("ticker")
 
-        ticker := c.String("ticker")
+	url := fmt.Sprintf("https://yahoo-finance15.p.rapidapi.com/api/v1/markets/stock/modules?ticker=%s&module=financial-data", ticker)
 
-        url := fmt.Sprintf("https://yahoo-finance15.p.rapidapi.com/api/v1/markets/stock/modules?ticker=%s&module=financial-data", ticker)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return 
+	}
 
-        req, err := http.NewRequest("GET", url, nil)
-        if err != nil {
-                return PriceResponse{}, fmt.Errorf("erro ao criar requisição: %w", err)
-        }
+	req.Header.Add("x-rapidapi-key", apiKey)
+	req.Header.Add("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
 
-        req.Header.Add("x-rapidapi-key", apiKey)
-        req.Header.Add("x-rapidapi-host", "yahoo-finance15.p.rapidapi.com")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 
+	}
+	defer resp.Body.Close()
 
-        client := &http.Client{}
-        resp, err := client.Do(req)
-        if err != nil {
-                return PriceResponse{}, fmt.Errorf("erro na requisição: %w", err)
-        }
-        defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 
+	}
 
-        body, err := io.ReadAll(resp.Body)
-        if err != nil {
-                return PriceResponse{}, fmt.Errorf("erro ao ler o corpo da resposta: %w", err)
-        }
+	var data APIResponsePrice
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Erro ao decodificar JSON:", err)
+		return
+	}
 
-        var priceResponse PriceResponse
-        err = json.Unmarshal(body, &priceResponse)
-        if err != nil {
-                return PriceResponse{}, fmt.Errorf("erro ao deserializar JSON: %w", err)
-        }
+        ticker = data.Meta.Symbol
+        recommendation := data.PricesBody.RecommendationKey
+        price := data.PricesBody.CurrentPrice.Raw
 
-        return PriceResponse{}, nil
-        
+        fmt.Println("## Info ##")
+	fmt.Println("\nTicker:", ticker)
+	fmt.Println("Last price:", price)
+	fmt.Println("Recommendation:", recommendation)
+
 }
 
 func News(c *cli.Context)  {
@@ -136,7 +159,23 @@ func News(c *cli.Context)  {
                 fmt.Println("Erro ao ler o corpo da resposta:", err)
                 return
         }
+        var data APIResponseNews
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		fmt.Println("Erro ao decodificar JSON:", err)
+		return
+        }
 
-        fmt.Println("Notícias:")
-        fmt.Println(string(body))
+        
+        fmt.Println("## News ##")
+        for i := 0; i < len(data.NewsBody) && i < 5; i++ {
+                news := data.NewsBody[i]
+                fmt.Println("\nTitle:", news.Title)
+                fmt.Println("URL:", news.URL)
+                fmt.Println("Source:", news.Source)
+                fmt.Println("Resume:", news.Text)
+                fmt.Println("Time:", news.Time)
+                fmt.Println("Publish at:", news.Ago)
+        }
+        
 }
