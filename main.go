@@ -1,8 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"log"
+	"os"
+	"stocknews/requests"
+)
 
 func main()  {
-	result := 
-	fmt.Println(result)
+	aplication := requests.Start()
+	erro := aplication.Run(os.Args)
+
+	if erro != nil {
+		log.Fatal(erro)
+	}
 }
