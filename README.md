@@ -1,6 +1,6 @@
 # Stocks Info
 
-![alt text](img/golang-stocks.jpeg)
+<img src="img/golang-stocks.jpeg" width=250 height=250>
 
 This command line application shows you the Price, Recommendation and News about a stock. Here are some sample terminal outputs below:
 
