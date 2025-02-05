@@ -8,9 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/aquasecurity/table"
 	"github.com/briandowns/spinner"
+	"github.com/enescakir/emoji"
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli"
 )
@@ -129,15 +130,14 @@ func Price(c *cli.Context) {
 	recommendation := data.PricesBody.RecommendationKey
 	price := data.PricesBody.CurrentPrice.Raw
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Ticker", "Last Price", "Recommendation"})
-	table.SetBorder(false)
-	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_CENTER})
-	table.Append([]string{
+	table := table.New(os.Stdout)
+	table.SetRowLines(false)
+	table.SetHeaders("Ticker", "Last Price", "Recommendation")
+	table.AddRow(
 		ticker,
 		fmt.Sprintf("%.2f", price),
 		recommendation,
-	})
+	)
 	table.Render()
 }
 
@@ -192,16 +192,19 @@ func News(c *cli.Context)  {
 	s.Stop()
 
 	colors := color.New(color.FgYellow).Add(color.Bold)
-	colors.Println("## News ##")
+	colors.Println("########## LAST NEWS ##########")
 
 	for i := 0; i < len(data.NewsBody) && i < 5; i++ {
 			news := data.NewsBody[i]
 			style := color.New(color.Bold)
-			style.Println("\nTitle:", news.Title)
-			style.Println("URL :", news.URL)
-			style.Println("Source:", news.Source)
-			style.Println("Resume:", news.Text)
-			style.Println("Time:", news.Time)
-			style.Println("Publish at:", news.Ago)
+			colored := color.New(color.FgCyan)
+			
+			colored.Println(emoji.Newspaper, news.Title)
+			colored.Println(emoji.Pencil, "", news.Text)
+			colored.Println(emoji.Calendar, "Time: ", news.Time)
+			colored.Println(emoji.Stopwatch, " Publish at: ", news.Ago)
+			style.Println(emoji.Link, news.URL)
+			style.Println(emoji.SpeakingHead, " Source:", news.Source)
+			fmt.Println("|---------------------------------------------------------------------------------------------------------------------------|")
 	}
 }
