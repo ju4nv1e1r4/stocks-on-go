@@ -3,9 +3,10 @@ module stocknews
 go 1.23.5
 
 require (
+	github.com/aquasecurity/table v1.8.0
 	github.com/briandowns/spinner v1.23.2
+	github.com/enescakir/emoji v1.0.0
 	github.com/fatih/color v1.18.0
-	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/viper v1.19.0
 	github.com/urfave/cli v1.22.16
 )
